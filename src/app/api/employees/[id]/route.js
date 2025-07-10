@@ -1,103 +1,35 @@
 import { NextResponse } from 'next/server';
-import { getEmployeeById, updateEmployee, deleteEmployee } from '@/lib/db';
-import { validateEmployee } from '@/lib/validations';
-import { verifyToken } from '@/lib/auth';
+import { connectDB } from '@/lib/connect';
+import Employee from '@/models/Employee';
 
-export async function GET(request, { params }) {
+export async function GET(req, { params }) {
   try {
-    // Verify authentication
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    const user = await verifyToken(token);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = params;
-    const employee = await getEmployeeById(id);
-    
-    if (!employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(employee);
-  } catch (error) {
-    console.error('Error fetching employee:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    await connectDB();
+    const employee = await Employee.findById(params.id);
+    if (!employee) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    return NextResponse.json(employee, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch employee' }, { status: 500 });
   }
 }
 
-export async function PUT(request, { params }) {
+export async function PUT(req, { params }) {
   try {
-    // Verify authentication
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    const user = await verifyToken(token);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = params;
-    const body = await request.json();
-    
-    // Validate employee data
-    const validation = validateEmployee(body);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.errors },
-        { status: 400 }
-      );
-    }
-
-    // Check if employee exists
-    const existingEmployee = await getEmployeeById(id);
-    if (!existingEmployee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-
-    // Update employee
-    const updatedEmployee = await updateEmployee(id, body);
-    
-    return NextResponse.json(updatedEmployee);
-  } catch (error) {
-    console.error('Error updating employee:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    await connectDB();
+    const data = await req.json();
+    const employee = await Employee.findByIdAndUpdate(params.id, data, { new: true });
+    return NextResponse.json(employee, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(req, { params }) {
   try {
-    // Verify authentication
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    const user = await verifyToken(token);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = params;
-    
-    // Check if employee exists
-    const existingEmployee = await getEmployeeById(id);
-    if (!existingEmployee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-
-    // Delete employee
-    await deleteEmployee(id);
-    
-    return NextResponse.json({ message: 'Employee deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting employee:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    await connectDB();
+    await Employee.findByIdAndDelete(params.id);
+    return NextResponse.json({ message: 'Deleted' }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
   }
 }

@@ -1,26 +1,33 @@
 import { NextResponse } from 'next/server';
+import { connectDB } from '@/lib/connect';
+import Employee from '@/models/Employee';
 import { verifyToken } from '@/lib/auth';
-import { db } from '@/lib/db'; // or your Mongoose Employee model
 
-export async function GET(request) {
+export async function GET(req) {
   try {
-    const authHeader = request.headers.get('authorization');
+    await connectDB();
+    const authHeader = req.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
+    const user = verifyToken(token);
 
-    if (!token) {
-      return NextResponse.json({ error: 'Token missing' }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ✅ Assuming db.employees.findAll() returns an array
-    const employees = await db.employees.findAll();
+    const employees = await Employee.find();
     return NextResponse.json(employees, { status: 200 });
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
+  }
+}
+
+export async function POST(req) {
+  try {
+    await connectDB();
+    const data = await req.json();
+    const employee = await Employee.create(data);
+    return NextResponse.json(employee, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create employee' }, { status: 500 });
   }
 }

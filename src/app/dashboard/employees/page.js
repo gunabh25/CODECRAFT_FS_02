@@ -66,7 +66,9 @@ const EmployeesPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (employee) =>
-          employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          `${employee.firstName} ${employee.lastName}`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           employee.position.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -148,12 +150,10 @@ const EmployeesPage = () => {
   const departments = [...new Set(employees.map((emp) => emp.department))];
   const statuses = ['active', 'inactive', 'terminated'];
 
-  // ...everything else remains the same — including JSX (header, filters, table, modal)
-
   return (
     <>
-      {/* You can leave the rest of the return JSX code as-is from your original version */}
-      {/* The only important fix was the Authorization header */}
+      {/* Your existing JSX code for header, filters, table, and modal */}
+      {/* Just make sure to pass: onSave={handleSaveEmployee}, etc. */}
     </>
   );
 };
