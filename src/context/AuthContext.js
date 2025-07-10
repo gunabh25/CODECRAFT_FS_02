@@ -1,70 +1,76 @@
+// context/AuthContext.js
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Cookies from 'js-cookie'
 
-const AuthContext = createContext({})
+const AuthContext = createContext()
 
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
+  return context
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Get user on mount via /api/auth/me
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/auth/me')
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
-        }
-      } catch (error) {
-        console.error('Auth error:', error)
-      }
-      setLoading(false)
-    }
+        const res = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        })
 
+        if (!res.ok) throw new Error('Unauthorized')
+
+        const data = await res.json()
+        setUser(data.user)
+      } catch (err) {
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchUser()
   }, [])
 
   const login = async (credentials) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+        credentials: 'include'
+      })
 
-    const data = await res.json()
+      const data = await res.json()
 
-    if (res.ok) {
-      // Token is set in HttpOnly cookie by backend
+      if (!res.ok) return { success: false, error: data.error }
+
       setUser(data.user)
       router.push('/dashboard')
       return { success: true }
-    } else {
-      return { success: false, error: data.error }
+    } catch (error) {
+      return { success: false, error: 'Network error' }
     }
   }
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' }) // Optional
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    })
     setUser(null)
     router.push('/login')
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )
