@@ -15,9 +15,11 @@ const EmployeeSchema = new mongoose.Schema({
   emergencyContact: {
     name: String,
     phone: String,
-    relationship: String
+    relationship: String,
   },
   status: { type: String, default: 'active' },
-}, { timestamps: true });
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
 
 export default mongoose.models.Employee || mongoose.model('Employee', EmployeeSchema);

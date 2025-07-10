@@ -1,32 +1,37 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/connect';
+import jwt from 'jsonwebtoken';
+import { connectToDatabase } from '@/lib/mongoose';
 import Employee from '@/models/Employee';
-import { verifyToken } from '@/lib/auth';
 
-export async function GET(req) {
+function verifyToken(request) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  if (!token) throw new Error('No token');
+
+  return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+}
+
+// GET all employees
+export async function GET(request) {
   try {
-    await connectDB();
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
-    const user = verifyToken(token);
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    verifyToken(request);
+    await connectToDatabase();
     const employees = await Employee.find();
-    return NextResponse.json(employees, { status: 200 });
+    return NextResponse.json(employees);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
+    return NextResponse.json({ error: 'Unauthorized or error fetching' }, { status: 401 });
   }
 }
 
-export async function POST(req) {
+// POST new employee
+export async function POST(request) {
   try {
-    await connectDB();
-    const data = await req.json();
-    const employee = await Employee.create(data);
-    return NextResponse.json(employee, { status: 201 });
+    verifyToken(request);
+    await connectToDatabase();
+    const body = await request.json();
+    const newEmployee = new Employee(body);
+    await newEmployee.save();
+    return NextResponse.json(newEmployee);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create employee' }, { status: 500 });
   }

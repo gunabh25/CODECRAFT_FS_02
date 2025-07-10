@@ -1,35 +1,48 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/connect';
+import { connectToDatabase } from '@/lib/mongoose';
 import Employee from '@/models/Employee';
+import jwt from 'jsonwebtoken';
 
-export async function GET(req, { params }) {
+function verifyToken(request) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  if (!token) throw new Error('No token');
+  return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+}
+
+// GET one employee
+export async function GET(request, { params }) {
   try {
-    await connectDB();
+    verifyToken(request);
+    await connectToDatabase();
     const employee = await Employee.findById(params.id);
-    if (!employee) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
-    return NextResponse.json(employee, { status: 200 });
+    return NextResponse.json(employee);
   } catch {
-    return NextResponse.json({ error: 'Failed to fetch employee' }, { status: 500 });
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 }
 
-export async function PUT(req, { params }) {
+// PUT update employee
+export async function PUT(request, { params }) {
   try {
-    await connectDB();
-    const data = await req.json();
-    const employee = await Employee.findByIdAndUpdate(params.id, data, { new: true });
-    return NextResponse.json(employee, { status: 200 });
+    verifyToken(request);
+    await connectToDatabase();
+    const body = await request.json();
+    const updated = await Employee.findByIdAndUpdate(params.id, body, { new: true });
+    return NextResponse.json(updated);
   } catch {
-    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
+    return NextResponse.json({ error: 'Update failed' }, { status: 500 });
   }
 }
 
-export async function DELETE(req, { params }) {
+// DELETE employee
+export async function DELETE(request, { params }) {
   try {
-    await connectDB();
+    verifyToken(request);
+    await connectToDatabase();
     await Employee.findByIdAndDelete(params.id);
-    return NextResponse.json({ message: 'Deleted' }, { status: 200 });
+    return NextResponse.json({ message: 'Deleted' });
   } catch {
-    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
+    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }
