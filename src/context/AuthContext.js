@@ -1,84 +1,71 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Cookies from 'js-cookie'
 
 const AuthContext = createContext({})
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
+export const useAuth = () => useContext(AuthContext)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  // Get user on mount via /api/auth/me
   useEffect(() => {
-    // Check if user is authenticated on app start
-    const token = Cookies.get('token')
-    const userData = Cookies.get('user')
-    
-    if (token && userData) {
+    const fetchUser = async () => {
       try {
-        setUser(JSON.parse(userData))
+        const res = await fetch('/api/auth/me')
+        if (res.ok) {
+          const data = await res.json()
+          setUser(data.user)
+        }
       } catch (error) {
-        console.error('Error parsing user data:', error)
-        logout()
+        console.error('Auth error:', error)
       }
+      setLoading(false)
     }
-    
-    setLoading(false)
+
+    fetchUser()
   }, [])
 
   const login = async (credentials) => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      })
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    })
 
-      const data = await response.json()
+    const data = await res.json()
 
-      if (response.ok) {
-        // Set cookies
-        Cookies.set('token', data.token, { expires: 7 })
-        Cookies.set('user', JSON.stringify(data.user), { expires: 7 })
-        
-        setUser(data.user)
-        router.push('/dashboard')
-        return { success: true }
-      } else {
-        return { success: false, error: data.error }
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error' }
+    if (res.ok) {
+      // Token is set in HttpOnly cookie by backend
+      setUser(data.user)
+      router.push('/dashboard')
+      return { success: true }
+    } else {
+      return { success: false, error: data.error }
     }
   }
 
-  const logout = () => {
-    Cookies.remove('token')
-    Cookies.remove('user')
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }) // Optional
     setUser(null)
     router.push('/login')
   }
 
-  const value = {
-    user,
-    login,
-    logout,
-    loading,
-    isAuthenticated: !!user,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        loading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }

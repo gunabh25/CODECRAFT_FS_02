@@ -5,8 +5,7 @@ import User from '@/models/User';
 
 export async function POST(request) {
   try {
-    const { name, email, password } = await request.json();
-
+    const { name, email, password, role = 'user' } = await request.json();
     await connectToDatabase();
 
     const existingUser = await User.findOne({ email });
@@ -16,11 +15,10 @@ export async function POST(request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const newUser = await User.create({ name, email, password: hashedPassword });
+    const newUser = await User.create({ name, email, password: hashedPassword, role });
 
-    return NextResponse.json({ message: 'User registered successfully', user: newUser });
+    return NextResponse.json({ message: 'User registered successfully' });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

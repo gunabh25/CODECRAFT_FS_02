@@ -1,3 +1,4 @@
+// ✅ /app/login/page.js
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -5,6 +6,8 @@ import { motion } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Mail, Building2, Shield } from 'lucide-react'
+import { loginSchema } from '@/schemas/auth';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -26,16 +29,9 @@ export default function LoginPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [name]: value }))
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }))
+      setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
 
@@ -44,12 +40,21 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrors({})
 
-    const result = await login(formData)
-    
+    const result = loginSchema.safeParse(formData);
     if (!result.success) {
-      setErrors({ general: result.error })
+      setErrors(result.error.flatten().fieldErrors);
+      setIsLoading(false);
+      return;
     }
-    
+
+    const res = await login(formData)
+    if (!res.success) {
+      setErrors({ general: res.error })
+      toast.error(res.error);
+    } else {
+      toast.success('Logged in successfully!');
+    }
+
     setIsLoading(false)
   }
 
@@ -86,66 +91,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 cyber-grid opacity-20"></div>
-      
-      {/* Floating Geometric Shapes */}
-      <motion.div
-        variants={floatingVariants}
-        animate="animate"
-        className="absolute top-20 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl"
-      />
-      <motion.div
-        variants={floatingVariants}
-        animate="animate"
-        className="absolute bottom-20 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl"
-        style={{ animationDelay: '2s' }}
-      />
-      <motion.div
-        variants={floatingVariants}
-        animate="animate"
-        className="absolute top-1/2 left-1/4 w-16 h-16 bg-cyan-500/20 rounded-full blur-xl"
-        style={{ animationDelay: '1s' }}
-      />
+      <motion.div variants={floatingVariants} animate="animate" className="absolute top-20 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl" />
+      <motion.div variants={floatingVariants} animate="animate" className="absolute bottom-20 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl" style={{ animationDelay: '2s' }} />
+      <motion.div variants={floatingVariants} animate="animate" className="absolute top-1/2 left-1/4 w-16 h-16 bg-cyan-500/20 rounded-full blur-xl" style={{ animationDelay: '1s' }} />
 
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="w-full max-w-md"
-        >
-          {/* Header */}
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-md">
           <motion.div variants={itemVariants} className="text-center mb-8">
-            <motion.div
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 shadow-2xl"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 shadow-2xl" whileHover={{ scale: 1.05, rotate: 5 }} whileTap={{ scale: 0.95 }}>
               <Building2 className="w-10 h-10 text-white" />
             </motion.div>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-300">
-              Sign in to your admin dashboard
-            </p>
+            <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-gray-300">Sign in to your admin dashboard</p>
           </motion.div>
 
-          {/* Login Form */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20"
-          >
+          <motion.div variants={itemVariants} className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
-              <motion.div
-                variants={itemVariants}
-                className="relative"
-              >
-                <label className="block text-white text-sm font-medium mb-2">
-                  Email Address
-                </label>
+              <motion.div variants={itemVariants} className="relative">
+                <label className="block text-white text-sm font-medium mb-2">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -158,16 +122,11 @@ export default function LoginPage() {
                     required
                   />
                 </div>
+                {errors.email && <p className="text-red-300 text-sm mt-1">{errors.email}</p>}
               </motion.div>
 
-              {/* Password Field */}
-              <motion.div
-                variants={itemVariants}
-                className="relative"
-              >
-                <label className="block text-white text-sm font-medium mb-2">
-                  Password
-                </label>
+              <motion.div variants={itemVariants} className="relative">
+                <label className="block text-white text-sm font-medium mb-2">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -179,36 +138,16 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-red-300 text-sm mt-1">{errors.password}</p>}
               </motion.div>
 
-              {/* Error Message */}
-              {errors.general && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-red-200 text-sm"
-                >
-                  {errors.general}
-                </motion.div>
-              )}
+              {errors.general && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-red-200 text-sm">{errors.general}</motion.div>}
 
-              {/* Submit Button */}
-              <motion.button
-                variants={itemVariants}
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+              <motion.button variants={itemVariants} type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 {isLoading ? (
                   <div className="flex items-center">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
@@ -223,27 +162,14 @@ export default function LoginPage() {
               </motion.button>
             </form>
 
-            {/* Demo Credentials */}
-            <motion.div
-              variants={itemVariants}
-              className="mt-6 p-4 bg-blue-500/20 rounded-xl border border-blue-500/30"
-            >
+            <motion.div variants={itemVariants} className="mt-6 p-4 bg-blue-500/20 rounded-xl border border-blue-500/30">
               <h3 className="text-white font-medium mb-2">Demo Credentials:</h3>
-              <p className="text-gray-300 text-sm">
-                Email: admin@company.com<br />
-                Password: password123
-              </p>
+              <p className="text-gray-300 text-sm">Email: admin@company.com<br />Password: password123</p>
             </motion.div>
           </motion.div>
 
-          {/* Footer */}
-          <motion.div
-            variants={itemVariants}
-            className="text-center mt-8 text-gray-400"
-          >
-            <p className="text-sm">
-              Employee Management System v1.0
-            </p>
+          <motion.div variants={itemVariants} className="text-center mt-8 text-gray-400">
+            <p className="text-sm">Employee Management System v1.0</p>
           </motion.div>
         </motion.div>
       </div>
