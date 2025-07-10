@@ -1,59 +1,22 @@
-import { NextResponse } from 'next/server';
-import { getEmployees, createEmployee } from '@/lib/db';
-import { validateEmployee } from '@/lib/validations';
-import { verifyToken } from '@/lib/auth';
+import { NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
 export async function GET(request) {
-  try {
-    // Verify authentication
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    const user = await verifyToken(token);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const authHeader = request.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
 
-    const employees = await getEmployees();
-    return NextResponse.json(employees);
-  } catch (error) {
-    console.error('Error fetching employees:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-}
 
-export async function POST(request) {
   try {
-    // Verify authentication
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    const user = await verifyToken(token);
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
 
-    const body = await request.json();
-    
-    // Validate employee data
-    const validation = validateEmployee(body);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.errors },
-        { status: 400 }
-      );
-    }
+    const employees = db.employees.findAll()
+    return NextResponse.json(employees, { status: 200 })
 
-    // Create employee
-    const newEmployee = await createEmployee(body);
-    
-    return NextResponse.json(newEmployee, { status: 201 });
-  } catch (error) {
-    console.error('Error creating employee:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  } catch (err) {
+    return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 }
