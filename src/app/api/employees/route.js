@@ -1,22 +1,26 @@
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import jwt from 'jsonwebtoken'
+import { NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/auth';
+import { db } from '@/lib/db'; // or your Mongoose Employee model
 
 export async function GET(request) {
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
 
-    const employees = db.employees.findAll()
-    return NextResponse.json(employees, { status: 200 })
+    if (!token) {
+      return NextResponse.json({ error: 'Token missing' }, { status: 401 });
+    }
 
-  } catch (err) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    const user = await verifyToken(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // ✅ Assuming db.employees.findAll() returns an array
+    const employees = await db.employees.findAll();
+    return NextResponse.json(employees, { status: 200 });
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
