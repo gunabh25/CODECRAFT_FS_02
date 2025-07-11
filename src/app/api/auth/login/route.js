@@ -10,11 +10,28 @@ import { serialize } from 'cookie';
 export async function POST(request) {
   try {
     const { email, password } = await request.json();
+    console.log('📥 Incoming Login Request:', { email, password });
 
     await connectToDatabase();
-    const user = await User.findOne({ email });
+    console.log('✅ Connected to MongoDB');
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const user = await User.findOne({ email });
+    console.log('🧠 Fetched user from DB:', user);
+
+    if (!user) {
+      console.log('❌ User not found with email:', email);
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    console.log('🔐 Comparing passwords...');
+    console.log('🔒 Password from request:', password);
+    console.log('🔒 Hashed password in DB:', user.password);
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('✅ bcrypt.compare result:', isMatch);
+
+    if (!isMatch) {
+      console.log('❌ Password does not match');
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -29,12 +46,13 @@ export async function POST(request) {
     const cookie = serialize('auth-token', token, {
       httpOnly: true,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     });
 
-    // ✅ Return response with headers object (NOT .headers.set())
+    console.log('✅ Login successful, setting cookie');
+
     return new NextResponse(
       JSON.stringify({
         message: 'Login successful',
@@ -54,7 +72,7 @@ export async function POST(request) {
       }
     );
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('🔥 Login error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
   }
 }
