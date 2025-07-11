@@ -4,10 +4,8 @@ import { connectToDatabase } from '@/lib/mongoose';
 import Employee from '@/models/Employee';
 
 function verifyToken(request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
+  const token = request.cookies.get('auth-token')?.value;
   if (!token) throw new Error('No token');
-
   return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 }
 
