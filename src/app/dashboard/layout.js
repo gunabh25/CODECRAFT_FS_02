@@ -1,20 +1,20 @@
-'use client'
-import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import Sidebar from '@/components/dashboard/Sidebar'
-import TopBar from '@/components/dashboard/TopBar'
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/dashboard/Sidebar';
+import TopBar from '@/components/dashboard/TopBar';
 
 export default function DashboardLayout({ children }) {
-  const { isAuthenticated, loading } = useAuth()
-  const router = useRouter()
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login')
+      router.push('/login');
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router]);
 
   if (loading) {
     return (
@@ -24,11 +24,11 @@ export default function DashboardLayout({ children }) {
           <p className="text-white text-lg">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!isAuthenticated) {
-    return null
+    return null;
   }
 
   return (
@@ -41,5 +41,5 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
     </div>
-  )
+  );
 }
