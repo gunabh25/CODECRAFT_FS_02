@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, XCircle, Info, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react'
 
 const NotificationIcon = ({ type }) => {
   const icons = {

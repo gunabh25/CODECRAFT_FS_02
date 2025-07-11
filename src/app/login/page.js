@@ -164,7 +164,7 @@ export default function LoginPage() {
 
             <motion.div variants={itemVariants} className="mt-6 p-4 bg-blue-500/20 rounded-xl border border-blue-500/30">
               <h3 className="text-white font-medium mb-2">Demo Credentials:</h3>
-              <p className="text-gray-300 text-sm">Email: admin@company.com<br />Password: password123</p>
+              <p className="text-gray-300 text-sm">Email: admin@company.com<br />Password: admin123</p>
             </motion.div>
           </motion.div>
 

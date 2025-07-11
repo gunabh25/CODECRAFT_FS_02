@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react'
 
 export default function StatsCard({ title, value, icon: Icon, color, theme }) {
   const getColorClasses = (color) => {

@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Trash2, CheckCircle, X } from 'lucide-react';
+import { useState, useEffect } from 'react'
 
 export default function ConfirmationModal({
   isOpen,

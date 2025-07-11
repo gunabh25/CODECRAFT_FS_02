@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react'
 
 const Loading = ({ size = 'default', text = 'Loading...' }) => {
   const sizes = {

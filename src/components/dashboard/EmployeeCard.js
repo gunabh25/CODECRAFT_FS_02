@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Edit, Trash2, User, Building, Calendar } from 'lucide-react';
 
