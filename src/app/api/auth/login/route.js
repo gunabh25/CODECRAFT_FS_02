@@ -10,35 +10,30 @@ import { serialize } from 'cookie';
 export async function POST(request) {
   try {
     const { email, password } = await request.json();
-    console.log('📥 Incoming Login Request:', { email, password });
+    console.log('📥 Login attempt:', { email });
 
     await connectToDatabase();
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ DB connected');
 
     const user = await User.findOne({ email });
-    console.log('🧠 Fetched user from DB:', user);
+    console.log('🔍 User found:', !!user);
 
     if (!user) {
-      console.log('❌ User not found with email:', email);
+      console.log('❌ Email not found');
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    console.log('🔐 Comparing passwords...');
-    console.log('🔒 Password from request:', password);
-    console.log('🔒 Hashed password in DB:', user.password);
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    console.log('🔐 Password match:', isPasswordCorrect);
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    console.log('✅ bcrypt.compare result:', isMatch);
-
-    if (!isMatch) {
-      console.log('❌ Password does not match');
+    if (!isPasswordCorrect) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error('❌ JWT_SECRET not found in environment variables');
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+      console.error('❌ JWT_SECRET not set');
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '7d' });
@@ -46,12 +41,12 @@ export async function POST(request) {
     const cookie = serialize('auth-token', token, {
       httpOnly: true,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      sameSite: 'lax', // Use 'none' if using cross-origin requests
+      secure: process.env.NODE_ENV === 'production', // Required for cross-site cookies
     });
 
-    console.log('✅ Login successful, setting cookie');
+    console.log('✅ Cookie created');
 
     return new NextResponse(
       JSON.stringify({
@@ -60,15 +55,15 @@ export async function POST(request) {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role,
-        },
+          role: user.role
+        }
       }),
       {
         status: 200,
         headers: {
           'Set-Cookie': cookie,
           'Content-Type': 'application/json',
-        },
+        }
       }
     );
   } catch (error) {
