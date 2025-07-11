@@ -5,8 +5,8 @@ import Employee from '@/models/Employee';
 
 function verifyToken(request) {
   const token = request.cookies.get('auth-token')?.value;
-  if (!token) throw new Error('No token');
-  return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+  if (!token) throw new Error('No token provided');
+  return jwt.verify(token, process.env.JWT_SECRET);
 }
 
 // GET all employees
@@ -17,7 +17,8 @@ export async function GET(request) {
     const employees = await Employee.find();
     return NextResponse.json(employees);
   } catch (error) {
-    return NextResponse.json({ error: 'Unauthorized or error fetching' }, { status: 401 });
+    console.error('❌ GET employees error:', error.message);
+    return NextResponse.json({ error: 'Unauthorized or error fetching employees' }, { status: 401 });
   }
 }
 
@@ -29,8 +30,9 @@ export async function POST(request) {
     const body = await request.json();
     const newEmployee = new Employee(body);
     await newEmployee.save();
-    return NextResponse.json(newEmployee);
+    return NextResponse.json(newEmployee, { status: 201 });
   } catch (error) {
+    console.error('❌ POST employee error:', error.message);
     return NextResponse.json({ error: 'Failed to create employee' }, { status: 500 });
   }
 }

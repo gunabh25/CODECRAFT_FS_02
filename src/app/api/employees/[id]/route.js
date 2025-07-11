@@ -5,43 +5,55 @@ import jwt from 'jsonwebtoken';
 
 function verifyToken(request) {
   const token = request.cookies.get('auth-token')?.value;
-  if (!token) throw new Error('No token');
-  return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+  if (!token) throw new Error('No token provided');
+  return jwt.verify(token, process.env.JWT_SECRET);
 }
 
-// GET one employee
+// GET /api/employees/:id
 export async function GET(request, { params }) {
   try {
     verifyToken(request);
     await connectToDatabase();
     const employee = await Employee.findById(params.id);
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
     return NextResponse.json(employee);
-  } catch {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  } catch (error) {
+    console.error('❌ GET employee by ID error:', error.message);
+    return NextResponse.json({ error: 'Unauthorized or error fetching employee' }, { status: 401 });
   }
 }
 
-// PUT update employee
+// PUT /api/employees/:id
 export async function PUT(request, { params }) {
   try {
     verifyToken(request);
     await connectToDatabase();
     const body = await request.json();
     const updated = await Employee.findByIdAndUpdate(params.id, body, { new: true });
+    if (!updated) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
     return NextResponse.json(updated);
-  } catch {
-    return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+  } catch (error) {
+    console.error('❌ PUT employee error:', error.message);
+    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
   }
 }
 
-// DELETE employee
+// DELETE /api/employees/:id
 export async function DELETE(request, { params }) {
   try {
     verifyToken(request);
     await connectToDatabase();
-    await Employee.findByIdAndDelete(params.id);
-    return NextResponse.json({ message: 'Deleted' });
-  } catch {
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+    const deleted = await Employee.findByIdAndDelete(params.id);
+    if (!deleted) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+    return NextResponse.json({ message: 'Employee deleted successfully' });
+  } catch (error) {
+    console.error('❌ DELETE employee error:', error.message);
+    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
   }
 }
