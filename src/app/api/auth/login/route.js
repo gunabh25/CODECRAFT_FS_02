@@ -1,4 +1,5 @@
-// File: src/app/api/auth/login/route.js
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongoose';
 import User from '@/models/User';
@@ -38,7 +39,7 @@ export async function POST(request) {
     response.headers.set('Set-Cookie', serialize('auth-token', token, {
       httpOnly: true,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production'
     }));
