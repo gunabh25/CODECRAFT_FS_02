@@ -26,25 +26,33 @@ export async function POST(request) {
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '7d' });
 
-    const response = NextResponse.json({
-      message: 'Login successful',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
-
-    response.headers.set('Set-Cookie', serialize('auth-token', token, {
+    const cookie = serialize('auth-token', token, {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production'
-    }));
+      secure: process.env.NODE_ENV === 'production',
+    });
 
-    return response;
+    // ✅ Return response with headers object (NOT .headers.set())
+    return new NextResponse(
+      JSON.stringify({
+        message: 'Login successful',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Set-Cookie': cookie,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
